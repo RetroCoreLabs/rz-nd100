@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
     branches: [main, master]
 
@@ -72,11 +73,17 @@ jobs:
           echo "Round-trip: $pass passed, $fail failed"
           [ "$fail" -eq 0 ] || exit 1
 
-      - name: Upload Linux plugins
+      - name: Package Linux plugins
+        run: |
+          mkdir -p dist
+          cp build/*.so dist/
+          cd dist && tar czf ../rz-nd100-linux-x86_64.tar.gz *.so
+
+      - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: rz-nd100-linux
-          path: build/*.so
+          path: rz-nd100-linux-x86_64.tar.gz
 
   windows:
     runs-on: windows-latest
@@ -158,8 +165,46 @@ jobs:
           echo "Round-trip: $pass passed, $fail failed"
           [ "$fail" -eq 0 ] || exit 1
 
-      - name: Upload Windows plugins
+      - name: Package Windows plugins
+        run: |
+          mkdir -p dist
+          cp build/*.dll dist/
+
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: rz-nd100-windows
-          path: build/*.dll
+          path: dist/*.dll
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rz-nd100-linux
+          path: release/
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rz-nd100-windows
+          path: win-plugins/
+
+      - name: Package Windows plugins
+        run: |
+          cd win-plugins && zip ../release/rz-nd100-windows-x86_64.zip *.dll
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/rz-nd100-linux-x86_64.tar.gz
+            release/rz-nd100-windows-x86_64.zip
