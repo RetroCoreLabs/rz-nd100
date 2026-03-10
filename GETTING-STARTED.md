@@ -12,15 +12,16 @@ Verify the plugins are loaded:
 
 ```
 $ rz-asm -L | grep nd100
-_dA__ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler
+adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler
 
 $ rizin -qc 'iL' /dev/null | grep -E 'bpun|aout16'
 bin  aout16      Norsk Data ND-100 a.out16 format
 bin  bpun        Norsk Data BPUN bootstrap format
 ```
 
-You should see three plugins: the disassembler/analysis (`nd100`), and two
-binary loaders (`bpun` and `aout16`).
+You should see the disassembler/assembler/analysis (`nd100`) and two
+binary loaders (`bpun` and `aout16`). The `A` flag in `adAe_` confirms
+assembler support.
 
 ## Supported File Formats
 
@@ -77,6 +78,8 @@ Or inside Rizin:
 
 ## Quick Command-Line Usage with rz-asm
 
+### Disassembly
+
 You can disassemble raw hex bytes without opening a full Rizin session:
 
 ```
@@ -91,6 +94,40 @@ EXIT
 
 The `-e` flag selects big-endian mode (for BPUN-style bytes).
 Without `-e`, bytes are read as little-endian (a.out16 style).
+
+### Assembly
+
+Assemble ND-100 instructions to binary:
+
+```
+$ rz-asm -a nd100 'LDA ,B -4'
+fc49
+
+$ rz-asm -a nd100 'BSKP ONE 10 DA'
+8dfa
+
+$ rz-asm -a nd100 'RADD CLD SA DA'
+2dd0
+
+$ rz-asm -a nd100 'MON 101'
+41d6
+```
+
+Two syntax styles are supported for addressing modes:
+
+```
+$ rz-asm -a nd100 'LDA ,B -4'      # Rizin disassembly format
+fc49
+$ rz-asm -a nd100 'LDA -4,B'       # nd100-as assembler format
+fc49
+```
+
+Both produce the same encoding. Round-trip is guaranteed:
+
+```
+$ rz-asm -a nd100 'LDA ,B -4' | xargs rz-asm -a nd100 -d
+LDA ,B -4
+```
 
 ## Essential Rizin Commands
 
@@ -133,6 +170,9 @@ nth      vaddr bind   type lib name
 0x00000002 0x00000012 ADD_8
 0x0000000c 0x0000001c ADD_16 cret
 0x0000000e 0x0000001e ADD_16 _puts
+
+[0x00000000]> ih          # Header display (a.out16 files)
+[0x00000000]> iH          # Header fields (a.out16 files)
 ```
 
 ### Disassembly
@@ -161,6 +201,28 @@ Example output from a BPUN floppy monitor:
 
 Note the inline annotations on MON and IOX instructions -- these show
 the device name, register name, and I/O direction automatically.
+
+### Pseudo-Code Output
+
+Enable C-like pseudo-code translation:
+
+```
+[0x00000000]> e asm.pseudo=true
+[0x00000000]> pd 6
+            0x00000000      a = 5
+            0x00000002      a = *(b + 10)
+            0x00000004      *(b + 5) = a
+            0x00000006      if (a > 0) goto 0x14
+            0x00000008      TRAP(LEAVE)
+            0x0000000a      a += *(b + 3)
+```
+
+Or use `pdc` for full function pseudo-code:
+
+```
+[0x00000000]> aaa
+[0x00000000]> pdc @ entry0
+```
 
 ### Navigation
 
@@ -234,7 +296,7 @@ After analysis, `pdf` shows branch arrows and cross-references:
 ```
 
 The arrows show:
-- **Branch arrows** (`+--` / `+->`) for conditional jumps (JAN, JAZ, SKP, BSKP, etc.)
+- **Branch arrows** (`+--` / `+->`) for conditional jumps (JAN, JAZ, SKP, BSKP, MIN, etc.)
 - **Loop arrows** for backward jumps
 - **Call xrefs** showing where a function is called from
 
@@ -288,6 +350,7 @@ mnemonic: BSKP
 type: cjmp
 jump: 0x00000028
 fail: 0x00000026
+family: cpu
 ```
 
 The `type` field shows how the analysis plugin classified the
@@ -297,6 +360,120 @@ instruction:
 - `call` -- subroutine call (JPL)
 - `ret` -- return (EXIT, LEAVE, ELEAV)
 - `swi` -- software interrupt (MON)
+- `io` -- I/O operation (IOX, IOT)
+- `nop` -- no operation (ROP NOOP, IOF, ION, etc.)
+
+The `family` field classifies the instruction group:
+- `cpu` -- general CPU instructions
+- `fpu` -- floating-point (FAD, FSB, FMU, FDV)
+- `io` -- I/O instructions (IOX, IOT, IOXT)
+- `priv` -- privileged/system instructions (TRA, TRR, MCL, MST, OPCOM, etc.)
+
+## ESIL Emulation
+
+ESIL (Evaluable Strings Intermediate Language) allows stepping through
+ND-100 code instruction by instruction:
+
+```
+[0x00000000]> aei           # Initialize ESIL VM
+[0x00000000]> aeim          # Initialize ESIL memory
+[0x00000000]> aer a=0x42    # Set register A to 0x42
+[0x00000000]> aes           # Step one instruction
+[0x00000000]> aes           # Step another
+[0x00000000]> ar            # Show all registers
+s = 0x0000
+d = 0x0000
+p = 0x0000
+b = 0x0000
+l = 0x0000
+a = 0x0042
+t = 0x0000
+x = 0x0000
+pc = 0x0004
+```
+
+ESIL strings are generated for:
+- All memory reference instructions (LDA, STA, ADD, SUB, AND, ORA, etc.) with all addressing modes
+- Branch conditions (JAP, JAN, JAZ, JAF, JPC, JNC, JXZ, JXN)
+- Skip comparisons (SKP IF DA GRE SA, etc.)
+- Register operations (RADD, RADD CLD)
+- Shift instructions (SHT, SHD, SHA, SAD)
+- Argument instructions (SAA, AAA, SAB, AAB, etc.)
+- MON trap calls
+- Memory increment/decrement (MIN, DNZ)
+
+To view the ESIL string for an instruction:
+
+```
+[0x00000000]> aoe @ 0x100   # Show ESIL at address
+```
+
+## Assembler
+
+### Using the Assembler from Rizin
+
+Inside Rizin, use `wa` to write assembled instructions:
+
+```
+[0x00000000]> wa LDA ,B -4
+Written 2 byte(s) (LDA ,B -4) = wx fc49
+```
+
+### Supported Instruction Categories
+
+The assembler supports the complete ND-100/ND-110 instruction set:
+
+**Memory reference** (all 8 addressing modes):
+`STZ`, `STA`, `STT`, `STX`, `STD`, `LDD`, `STF`, `LDF`, `MIN`,
+`LDA`, `LDT`, `LDX`, `ADD`, `SUB`, `AND`, `ORA`, `FAD`, `FSB`,
+`FMU`, `FDV`, `MPY`, `JMP`, `JPL`
+
+**Conditional branches**: `JAP`, `JAN`, `JAZ`, `JAF`, `JPC`, `JNC`, `JXZ`, `JXN`
+
+**Argument instructions**: `SAB`, `SAA`, `SAT`, `SAX`, `AAB`, `AAA`, `AAT`, `AAX`
+
+**Register operations** (with CLD/CM1/AD1/ADC modifiers):
+`RADD`, `RSUB`, `SWAP`, `RAND`, `REXO`, `RORA`, `COPY`, `RMPY`, `RDIV`, `RCLR`, `RINC`, `RDCR`
+
+**Skip instructions**: `SKP IF <dst> <cond> <src>`
+
+**Bit operations**: `BSET`, `BSKP` (with ZRO/ONE/BCM/BAC conditions),
+`BSTC`, `BSTA`, `BLDC`, `BLDA`, `BANC`, `BAND`, `BORC`, `BORA`
+
+**Shift instructions**: `SHT`, `SHD`, `SHA`, `SAD` (with ROT/ZIN/LIN/SHR)
+
+**I/O**: `IOX`, `IOT`, `MON`
+
+**Internal registers**: `TRA`, `TRR`, `MCL`, `MST`, `IRW`, `IRR`
+
+**Privileged**: `IDENT PL10/PL11/PL12/PL13`, `EXR`,
+`LDATX`, `LDXTX`, `LDDTX`, `LDBTX`, `STATX`, `STZTX`, `STDTX`
+
+**ND-110**: `WGLOB`, `RGLOB`, `INSPL`, `REMPL`, `CNREK`, `CLPT`, `ENPT`, `REPT`,
+`LBIT`, `SBITP`, `LBYTP`, `SBYTP`, `TSETP`, `RDUSP`,
+`LASB`, `SASB`, `LACB`, `SACB`, `LXSB`, `LXCB`, `SZSB`, `SZCB`
+
+**Fixed-word**: `EXIT`, `LEAVE`, `ELEAV`, `ENTR`, `INIT`, `OPCOM`, `IOF`, `ION`,
+`POF`, `PIOF`, `PON`, `PION`, `SEX`, `REX`, `WAIT`, `HALT`, `IOXT`, `EXAM`, `DEPO`,
+`ADDD`, `SUBD`, `COMD`, `TSET`, `PACK`, `UPACK`, `SHDE`, `RDUS`, `BFILL`,
+`MOVB`, `MOVBF`, `VERSN`, `LBYT`, `SBYT`, `GECO`, `MOVEW`, `LWCS`, `MIX3`,
+`SETPT`, `CLEPT`, `CLNREENT`, `CHREENT-PAGES`, `CLEPU`, `ROP NOOP`,
+`SRB`, `LRB`, `NLZ`, `DNZ`
+
+### Addressing Mode Syntax
+
+Both Rizin disassembly format and nd100-as assembler format are accepted:
+
+| Rizin format | nd100-as format | Mode |
+|---|---|---|
+| `LDA 10` | `LDA 10` | Direct |
+| `LDA ,B 10` | `LDA 10,B` | B-relative |
+| `LDA I 10` | `LDA I 10` | Indirect |
+| `LDA I ,B 10` | `LDA I 10,B` | Indirect B-relative |
+| `LDA ,X 10` | `LDA 10,X` | X-indexed |
+| `LDA ,X ,B 10` | `LDA 10,B,X` | X-indexed B-relative |
+| `LDA I ,X 10` | `LDA I 10,X` | Indirect X-indexed |
+| `LDA I ,B ,X 10` | `LDA I 10,B,X` | Indirect B-relative X-indexed |
 
 ## Searching
 
@@ -388,22 +565,25 @@ simultaneously (disassembly, hex, registers, etc.):
 The ND-100 register profile:
 
 ```
-[0x00000000]> arp
-=PC  pc
-=SP  sp
-=BP  b
-=A0  a
-=R0  a
-gpr  a   .16  0   0    ; A register (accumulator)
-gpr  t   .16  2   0    ; T register
-gpr  x   .16  4   0    ; X register (index)
-gpr  b   .16  6   0    ; B register (frame pointer)
-gpr  l   .16  8   0    ; L register (link/return)
-gpr  d   .16  10  0    ; D register
-gpr  sp  .16  12  0    ; S register (stack pointer)
-gpr  p   .16  14  0    ; P register (program counter)
-gpr  pc  .16  16  0    ; PC (virtual, for Rizin)
+[0x00000000]> ar
+s  = 0x0000    ; S register (status)
+d  = 0x0000    ; D register
+p  = 0x0000    ; P register (program counter, hardware)
+b  = 0x0000    ; B register (frame pointer)
+l  = 0x0000    ; L register (link/return address)
+a  = 0x0000    ; A register (accumulator)
+t  = 0x0000    ; T register
+x  = 0x0000    ; X register (index)
+pc = 0x0000    ; PC (virtual, for Rizin)
 ```
+
+**Note:** The ND-100 has no hardware stack. There is no stack pointer
+register and no PUSH/POP instructions. Subroutine calls (JPL) save the
+return address in the L register. The B register serves as a frame
+pointer in the ENTR/LEAVE calling convention, where local variables and
+saved registers are accessed via B-relative addressing modes.
+
+Rizin's `=SP` is mapped to the B register for frame variable detection.
 
 ## Working with Cutter (GUI)
 
@@ -415,7 +595,8 @@ installed, Cutter automatically supports ND-100 files:
 3. Click "Analyze" to run `aaa` (or configure analysis options)
 4. Use the Graph view to see control flow graphs with branch arrows
 5. The Disassembly view shows inline MON/IOX annotations
-6. The Functions panel lists all discovered functions
+6. Enable pseudo-code with `e asm.pseudo=true` in the console
+7. The Functions panel lists all discovered functions
 
 For a.out16 files with symbols, the symbol names appear in the
 Functions panel and in disassembly cross-references.
@@ -441,6 +622,7 @@ $ rizin FLOPPY-MON-2010G.BPUN
 $ rizin boot.out
 [0x00000000]> iI                    # Check file info
 [0x00000000]> is                    # List symbols
+[0x00000000]> ih                    # Display a.out16 header
 [0x00000000]> aaa                   # Full analysis (uses prologue detection)
 [0x00000000]> pdf @ sym.start       # Disassemble 'start' function
 [0x00000000]> axt @ sym.start       # Who calls start?
@@ -453,6 +635,28 @@ $ rizin module.o
 [0x00000000]> ii                    # List imports (undefined externals)
 [0x00000000]> ir                    # List relocations
 [0x00000000]> is                    # List defined symbols
+```
+
+### ESIL Stepping
+
+```bash
+$ rizin -a nd100 -b 16 firmware.bin
+[0x00000000]> aei                   # Initialize ESIL
+[0x00000000]> aeim                  # Initialize ESIL memory
+[0x00000000]> aer a=0xff            # Set accumulator
+[0x00000000]> aer b=0x100           # Set frame pointer
+[0x00000000]> aes                   # Step one instruction
+[0x00000000]> ar                    # Show registers after step
+[0x00000000]> aec                   # Continue until break/end
+```
+
+### Assemble and Patch
+
+```bash
+$ rizin -w firmware.bin             # Open in write mode
+[0x00000000]> wa JMP 10             # Write assembled instruction
+[0x00000000]> wa ROP NOOP           # Write NOP
+[0x00000000]> wao nop               # Replace current instruction with NOP
 ```
 
 ### Find I/O Device Usage
@@ -508,6 +712,10 @@ $ rizin -a nd100 -qc '/ad MON' file.BPUN
 
 # Export function list as JSON
 $ rizin -a nd100 -qc 'aaa; aflj' file.BPUN
+
+# Assemble from command line
+$ rz-asm -a nd100 'LDA ,B -4'
+$ rz-asm -a nd100 'BSKP ONE 10 DA'
 ```
 
 ## Quick Reference
@@ -520,15 +728,26 @@ $ rizin -a nd100 -qc 'aaa; aflj' file.BPUN
 | `is` | Symbols |
 | `ii` | Imports (undefined externals in .o files) |
 | `ir` | Relocations (.o files only) |
+| `ih` | Header display (a.out16) |
+| `iH` | Header fields (a.out16) |
 | `aaa` | Full auto-analysis (with prologue detection) |
 | `afl` | List functions |
 | `aflc` | Count functions |
 | `pdf` | Disassemble current function |
+| `pdc` | Pseudo-code of current function |
 | `pd N` | Disassemble N instructions |
 | `s ADDR` | Seek to address |
-| `ao N` | Analyze N opcodes (show type, jump, fail) |
+| `ao N` | Analyze N opcodes (show type, jump, fail, family) |
 | `axt ADDR` | Cross-references to address |
 | `axf ADDR` | References from address |
+| `aei` | Initialize ESIL VM |
+| `aeim` | Initialize ESIL memory |
+| `aes` | ESIL step one instruction |
+| `aec` | ESIL continue |
+| `ar` | Show registers |
+| `wa INSN` | Write assembled instruction |
+| `e asm.pseudo=true` | Enable pseudo-code output |
+| `e asm.cpu=nd110` | Enable ND-110 extended instructions |
 | `/ad PATTERN` | Search for disassembly pattern |
 | `/x HEX` | Search for hex bytes |
 | `/z STRING` | Search for ASCII string |

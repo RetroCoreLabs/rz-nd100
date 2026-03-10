@@ -1,0 +1,129 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rizin from RizinOrg repository
+        run: |
+          echo 'deb http://download.opensuse.org/repositories/home:/RizinOrg/xUbuntu_22.04/ /' | sudo tee /etc/apt/sources.list.d/home:RizinOrg.list
+          curl -fsSL https://download.opensuse.org/repositories/home:RizinOrg/xUbuntu_22.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_RizinOrg.gpg > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y rizin librizin-dev
+
+      - name: Install build tools
+        run: sudo apt-get install -y meson ninja-build gcc pkg-config
+
+      - name: Configure
+        run: meson setup build
+
+      - name: Build
+        run: ninja -C build
+
+      - name: Verify plugins
+        run: |
+          echo "=== Built plugins ==="
+          ls -la build/*.so
+          echo "=== Install and verify ==="
+          sudo ninja -C build install
+          rz-asm -L | grep nd100
+          rizin -qc 'iL' /dev/null | grep -E 'bpun|aout16'
+
+      - name: Test assembler round-trip
+        run: |
+          pass=0; fail=0
+          for test in \
+            "LDA 0" "LDA ,B -4" "LDA I 0" "LDA ,X ,B 10" \
+            "STA 0" "JMP 0" "JPL ,B 10" "JAP 10" \
+            "MON 101" "IOX 10" "EXIT" "LEAVE" \
+            "SKP IF DA GRE SA" "RADD CLD SA DA" \
+            "SHT SHR 4" "SHT ROT 4" "BSKP ONE 10 DA" \
+            "BSET ZRO SSPTM" "BSTC 10 DA" "IDENT PL10" \
+            "EXR SA" "IRW 10 DA" "RCLR DA" "RINC DA" \
+            "LDATX" "STATX" "ROP NOOP"; do
+            hex=$(rz-asm -a nd100 "$test" 2>/dev/null)
+            dis=$(rz-asm -a nd100 -d "$hex" 2>/dev/null | sed 's/ *;.*//')
+            rehex=$(rz-asm -a nd100 "$dis" 2>/dev/null)
+            if [ "$hex" = "$rehex" ]; then
+              pass=$((pass+1))
+            else
+              fail=$((fail+1))
+              echo "FAIL: '$test' -> $hex -> '$dis' -> $rehex"
+            fi
+          done
+          echo "Round-trip: $pass passed, $fail failed"
+          [ "$fail" -eq 0 ] || exit 1
+
+      - name: Upload Linux plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: rz-nd100-linux
+          path: build/*.so
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-rizin
+
+      - name: Configure
+        run: meson setup build
+
+      - name: Build
+        run: ninja -C build
+
+      - name: Verify plugins
+        run: |
+          echo "=== Built plugins ==="
+          ls -la build/*.dll
+          echo "=== Install and verify ==="
+          ninja -C build install
+          rz-asm -L | grep nd100
+
+      - name: Test assembler round-trip
+        run: |
+          pass=0; fail=0
+          for test in \
+            "LDA 0" "LDA ,B -4" "STA 0" "JMP 0" \
+            "MON 101" "EXIT" "RADD CLD SA DA" \
+            "BSKP ONE 10 DA" "LDATX" "ROP NOOP"; do
+            hex=$(rz-asm -a nd100 "$test" 2>/dev/null)
+            dis=$(rz-asm -a nd100 -d "$hex" 2>/dev/null | sed 's/ *;.*//')
+            rehex=$(rz-asm -a nd100 "$dis" 2>/dev/null)
+            if [ "$hex" = "$rehex" ]; then
+              pass=$((pass+1))
+            else
+              fail=$((fail+1))
+              echo "FAIL: '$test' -> $hex -> '$dis' -> $rehex"
+            fi
+          done
+          echo "Round-trip: $pass passed, $fail failed"
+          [ "$fail" -eq 0 ] || exit 1
+
+      - name: Upload Windows plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: rz-nd100-windows
+          path: build/*.dll

@@ -8,16 +8,17 @@ For installation of the compiled plugins into Rizin, see [INSTALL.md](INSTALL.md
 
 ## What Gets Built
 
-The build produces four shared library plugins:
+The build produces five shared library plugins:
 
 | Plugin | File (Linux / Windows) | Purpose |
 |--------|------------------------|---------|
-| **asm_nd100** | `asm_nd100.so` / `asm_nd100.dll` | Disassembler for ND-100/ND-110 instructions |
-| **analysis_nd100** | `analysis_nd100.so` / `analysis_nd100.dll` | Control flow and register analysis |
+| **asm_nd100** | `asm_nd100.so` / `asm_nd100.dll` | Disassembler and assembler for ND-100/ND-110 instructions |
+| **analysis_nd100** | `analysis_nd100.so` / `analysis_nd100.dll` | Control flow, ESIL emulation, and op classification |
+| **parse_nd100** | `parse_nd100.so` / `parse_nd100.dll` | C-like pseudo-code output |
 | **bin_aout16** | `bin_aout16.so` / `bin_aout16.dll` | Binary loader for ND-100 a.out16 executables and object files |
 | **bin_bpun** | `bin_bpun.so` / `bin_bpun.dll` | Binary loader for BPUN bootstrap files |
 
-All four plugins are installed into Rizin's plugin directory automatically.
+All five plugins are installed into Rizin's plugin directory automatically.
 
 ---
 
@@ -159,8 +160,9 @@ After a successful build, the `build/` directory contains:
 
 ```
 build/
-  asm_nd100.so          # Disassembler plugin
-  analysis_nd100.so     # Analysis plugin
+  asm_nd100.so          # Disassembler and assembler plugin
+  analysis_nd100.so     # Analysis and ESIL plugin
+  parse_nd100.so        # Pseudo-code parser plugin
   bin_aout16.so         # a.out16 binary loader
   bin_bpun.so           # BPUN binary loader
 ```

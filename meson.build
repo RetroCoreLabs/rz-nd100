@@ -1,5 +1,5 @@
 project('rz-nd100', 'c',
-    version: '1.0.0',
+    version: '1.0.1',
     license: 'LGPL-3.0-only',
     default_options: ['c_std=c11', 'warning_level=2'],
 )
@@ -20,7 +20,7 @@ shared_library('asm_nd100',
 )
 
 shared_library('analysis_nd100',
-    ['src/rz_analysis_nd100.c', 'src/nd100_disasm.c'],
+    ['src/rz_analysis_nd100.c', 'src/nd100_disasm.c', 'src/moncalls.c'],
     dependencies: [rz_core_dep],
     install: true,
     install_dir: plugins_dir,
@@ -37,6 +37,14 @@ shared_library('bin_bpun',
 
 shared_library('bin_aout16',
     ['src/rz_bin_aout16.c'],
+    dependencies: [rz_core_dep],
+    install: true,
+    install_dir: plugins_dir,
+    name_prefix: '',
+)
+
+shared_library('parse_nd100',
+    ['src/rz_parse_nd100.c'],
     dependencies: [rz_core_dep],
     install: true,
     install_dir: plugins_dir,

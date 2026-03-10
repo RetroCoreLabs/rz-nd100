@@ -741,11 +741,120 @@ static RzBinInfo *aout16_info(RzBinFile *bf) {
 	return info;
 }
 
+static RzBinAddr *aout16_binsym(RzBinFile *bf, RzBinSpecialSymbol sym) {
+	struct aout16_obj *obj;
+	RzBinAddr *ret;
+	int i;
+
+	if (!bf || !bf->o) {
+		return NULL;
+	}
+	obj = bf->o->bin_obj;
+	if (!obj) {
+		return NULL;
+	}
+
+	if (sym == RZ_BIN_SPECIAL_SYMBOL_ENTRY) {
+		ret = RZ_NEW0(RzBinAddr);
+		if (ret) {
+			ret->vaddr = (ut64)obj->a_entry * 2;
+			ret->paddr = obj->off_text;
+		}
+		return ret;
+	}
+
+	if (sym == RZ_BIN_SPECIAL_SYMBOL_MAIN && obj->syms) {
+		/* Search for _main or main symbol */
+		for (i = 0; i < obj->nsyms; i++) {
+			const char *name = aout16_sym_name(obj, i);
+			if (!name) continue;
+			if (!strcmp(name, "_main") || !strcmp(name, "main") ||
+			    !strcmp(name, "_main_")) {
+				ret = RZ_NEW0(RzBinAddr);
+				if (ret) {
+					ret->vaddr = (ut64)obj->syms[i].value * 2;
+					ret->paddr = obj->off_text +
+						(ut64)(obj->syms[i].value - obj->a_entry) * 2;
+				}
+				return ret;
+			}
+		}
+	}
+	return NULL;
+}
+
+static RzPVector *aout16_fields(RzBinFile *bf) {
+	struct aout16_obj *obj;
+	RzPVector *fields;
+
+	if (!bf || !bf->o) {
+		return NULL;
+	}
+	obj = bf->o->bin_obj;
+	if (!obj) {
+		return NULL;
+	}
+
+	fields = rz_pvector_new(free);
+	if (!fields) {
+		return NULL;
+	}
+
+	/* Header fields at fixed offsets */
+	static const struct { const char *name; int offset; } hdr[] = {
+		{"magic",     0}, {"text_size",  2}, {"data_size",  4},
+		{"bss_size",  6}, {"syms_size",  8}, {"entry",     10},
+		{"zp_size",  12}, {"flag",      14},
+	};
+	int i;
+	for (i = 0; i < 8; i++) {
+		RzBinField *f = RZ_NEW0(RzBinField);
+		if (!f) continue;
+		f->name = rz_str_dup(hdr[i].name);
+		f->paddr = hdr[i].offset;
+		f->vaddr = hdr[i].offset;
+		f->size = 2;
+		rz_pvector_push(fields, f);
+	}
+
+	return fields;
+}
+
+static void aout16_header(RzBinFile *bf) {
+	struct aout16_obj *obj;
+
+	if (!bf || !bf->o) {
+		return;
+	}
+	obj = bf->o->bin_obj;
+	if (!obj) {
+		return;
+	}
+
+	RzBin *bin = bf->rbin;
+	PrintfCallback cb = bin->cb_printf;
+	if (!cb) {
+		return;
+	}
+
+	cb("a.out16 header:\n");
+	cb("  magic:     0%o (0x%04x)\n", obj->a_magic, obj->a_magic);
+	cb("  text:      %u words (%u bytes)\n", obj->a_text, obj->a_text * 2);
+	cb("  data:      %u words (%u bytes)\n", obj->a_data, obj->a_data * 2);
+	cb("  bss:       %u words (%u bytes)\n", obj->a_bss, obj->a_bss * 2);
+	cb("  syms:      %u words (%d symbols)\n", obj->a_syms, obj->nsyms);
+	cb("  entry:     0%o (word addr) = 0x%04x (byte addr)\n",
+		obj->a_entry, obj->a_entry * 2);
+	cb("  zero page: %u words\n", obj->a_zp);
+	cb("  flag:      %u%s\n", obj->a_flag,
+		obj->a_flag ? " (reloc stripped)" : "");
+}
+
 RzBinPlugin rz_bin_plugin_aout16 = {
 	.name = "aout16",
 	.desc = "Norsk Data ND-100 a.out16 format",
 	.author = "Ronny Hansen",
-	.version = "1.0.0",
+	.version = "1.0.1",
 	.license = "LGPL3",
 	.check_buffer = &aout16_check_buffer,
 	.load_buffer = &aout16_load_buffer,
@@ -758,6 +867,9 @@ RzBinPlugin rz_bin_plugin_aout16 = {
 	.imports = &aout16_imports,
 	.relocs = &aout16_relocs,
 	.info = &aout16_info,
+	.binsym = &aout16_binsym,
+	.fields = &aout16_fields,
+	.header = &aout16_header,
 };
 
 #ifndef RZ_PLUGIN_INCORE

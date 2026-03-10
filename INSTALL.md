@@ -8,13 +8,14 @@ For build prerequisites and compilation instructions, see [BUILD.md](BUILD.md).
 
 ## Plugins Overview
 
-The rz-nd100 project builds and installs four plugins:
+The rz-nd100 project builds and installs five plugins:
 
 | Plugin | File (Linux / Windows) | Type | Purpose |
 |--------|------------------------|------|---------|
-| **asm_nd100** | `asm_nd100.so` / `asm_nd100.dll` | Assembler | Disassembles ND-100/ND-110 instructions, annotates MON calls and IOX registers |
-| **analysis_nd100** | `analysis_nd100.so` / `analysis_nd100.dll` | Analysis | Control flow analysis, branch/call detection, register definitions |
-| **bin_aout16** | `bin_aout16.so` / `bin_aout16.dll` | Binary loader | Loads ND-100 a.out16 executable and object files (symbols, relocations, segments) |
+| **asm_nd100** | `asm_nd100.so` / `asm_nd100.dll` | Assembler | Disassembles and assembles ND-100/ND-110 instructions, annotates MON calls and IOX registers |
+| **analysis_nd100** | `analysis_nd100.so` / `analysis_nd100.dll` | Analysis | Control flow analysis, ESIL emulation, op classification, register definitions |
+| **parse_nd100** | `parse_nd100.so` / `parse_nd100.dll` | Parser | C-like pseudo-code output for `pdc` and `asm.pseudo` |
+| **bin_aout16** | `bin_aout16.so` / `bin_aout16.dll` | Binary loader | Loads ND-100 a.out16 executable and object files (symbols, relocations, segments, header) |
 | **bin_bpun** | `bin_bpun.so` / `bin_bpun.dll` | Binary loader | Loads BPUN and FloMon bootstrap files |
 
 All plugins are installed into Rizin's plugin directory automatically by the build system.
@@ -99,13 +100,13 @@ ninja -C build install
 
 > Replace `<your-org>` with the actual GitHub organization or username.
 
-The install step copies all four plugins (`asm_nd100`, `analysis_nd100`, `bin_aout16`, `bin_bpun`) into Rizin's plugin directory. The correct path is determined automatically via pkg-config.
+The install step copies all five plugins (`asm_nd100`, `analysis_nd100`, `parse_nd100`, `bin_aout16`, `bin_bpun`) into Rizin's plugin directory. The correct path is determined automatically via pkg-config.
 
 ---
 
 ## Verifying the Installation
 
-### Disassembler plugin (asm_nd100)
+### Disassembler and assembler plugin (asm_nd100)
 
 ```bash
 rz-asm -L | grep nd100
@@ -114,7 +115,16 @@ rz-asm -L | grep nd100
 Expected output:
 
 ```
-_dA__ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler (by Ronny Hansen) v1.0.0
+adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.1
+```
+
+The `A` flag confirms assembler support is available.
+
+Quick assembler test:
+
+```bash
+rz-asm -a nd100 'LDA ,B -4'     # Should output: fc49
+rz-asm -a nd100 -d fc49          # Should output: LDA ,B -4
 ```
 
 ### Analysis plugin (analysis_nd100)
@@ -124,6 +134,12 @@ rizin -qc "e asm.arch=nd100; aai" /dev/null 2>&1 | head -1
 ```
 
 If no errors appear, the analysis plugin is loaded correctly.
+
+### Parser plugin (parse_nd100)
+
+```bash
+rizin -qc "e asm.arch=nd100; e asm.pseudo=true; e asm.bits=16" /dev/null 2>&1
+```
 
 ### Binary loader plugins (bin_aout16 and bin_bpun)
 
@@ -136,8 +152,8 @@ rizin -qc 'iL' /dev/null | grep -E "aout16|bpun"
 Expected output:
 
 ```
-bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.0 Ronny Hansen
-bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.0 Ronny Hansen
+bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.1 Ronny Hansen
+bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
 ```
 
 ### Using Cutter (GUI)
@@ -163,4 +179,4 @@ sudo ninja -C build uninstall
 ninja -C build uninstall
 ```
 
-This removes all four plugin files from Rizin's plugin directory.
+This removes all five plugin files from Rizin's plugin directory.

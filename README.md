@@ -7,7 +7,7 @@
 
 **Reverse-engineer Norsk Data ND-100/ND-110 minicomputer binaries using modern tools.**
 
-A plugin suite for [Rizin](https://rizin.re/) and [Cutter](https://cutter.re/) that brings full disassembly, control flow analysis, and binary format support for the ND-100 architecture -- with automatic SINTRAN III system call and I/O device annotations.
+A plugin suite for [Rizin](https://rizin.re/) and [Cutter](https://cutter.re/) that brings full disassembly, assembly, ESIL emulation, pseudo-code output, control flow analysis, and binary format support for the ND-100 architecture -- with automatic SINTRAN III system call and I/O device annotations.
 
 ---
 
@@ -41,6 +41,26 @@ A plugin suite for [Rizin](https://rizin.re/) and [Cutter](https://cutter.re/) t
         |   0x0000000a      IOX   1563 ; FLP1 Load Control (Write)
         |   0x0000000c      LDA   62
         |   0x0000000e      IOX   1565 ; FLP1 Load Pointer High (Write)
+```
+
+**Round-trip assembler** -- assemble ND-100 instructions and get them back:
+
+```
+$ rz-asm -a nd100 'LDA ,B -4'
+fc49
+$ rz-asm -a nd100 -d fc49
+LDA ,B -4
+```
+
+**Pseudo-code output** -- C-like translation of ND-100 assembly:
+
+```
+[0x00000000]> e asm.pseudo=true
+[0x00000000]> pd 4
+            0x00000000      a = 5
+            0x00000002      a = *(b + 10)
+            0x00000004      *(b + 5) = a
+            0x00000006      if (a > 0) goto 0x14
 ```
 
 **Function analysis with loop detection** -- branch arrows, cross-references, and skip instruction flow are all tracked:
@@ -79,13 +99,14 @@ EXIT
 
 ## Plugins
 
-The build produces four plugins that integrate seamlessly with Rizin and Cutter:
+The build produces five plugins that integrate seamlessly with Rizin and Cutter:
 
 | Plugin | Type | Description |
 |--------|------|-------------|
-| **asm_nd100** | Disassembler | Full ND-100/ND-110 instruction decoding with inline MON and IOX annotations |
-| **analysis_nd100** | Analysis | Control flow, branch/call/skip detection, cross-references, 8-register profile |
-| **bin_aout16** | Binary loader | ND-100 a.out16 executables and object files with symbols, imports, relocations, and segments |
+| **asm_nd100** | Assembler | Full ND-100/ND-110 disassembly and assembly with inline MON and IOX annotations |
+| **analysis_nd100** | Analysis | Control flow, ESIL emulation, op classification, frame tracking, function prologue detection |
+| **parse_nd100** | Parser | C-like pseudo-code output for `pdc` / `asm.pseudo=true` |
+| **bin_aout16** | Binary loader | ND-100 a.out16 executables and object files with symbols, imports, relocations, header display |
 | **bin_bpun** | Binary loader | BPUN and FloMon bootstrap punch files with auto-detection |
 
 ---
@@ -93,27 +114,70 @@ The build produces four plugins that integrate seamlessly with Rizin and Cutter:
 ## Features
 
 ### Disassembly
-- Complete ND-100 instruction set: memory reference, register ops, I/O, skip, branch
-- ND-110 extended instructions via `asm.cpu=nd110` (VERSN, WGLOB, LASB, etc.)
+
+- Complete ND-100 instruction set: memory reference, register ops, I/O, skip, branch, bit operations, shifts, privileged instructions
+- ND-110 extended instructions via `asm.cpu=nd110` (VERSN, WGLOB, LASB, RGLOB, INSPL, etc.)
 - Both big-endian (BPUN) and little-endian (a.out16) byte orders
 
+### Assembler
+
+- Full round-trip assembly of the entire ND-100/ND-110 instruction set
+- All 8 addressing modes: direct, B-relative, indirect, indirect B, X-indexed, X+B, indirect X, indirect B+X
+- Supports both Rizin disassembly syntax (`LDA ,B -4`) and nd100-as assembler syntax (`LDA -4,B`)
+- Register operations with all modifiers (CLD, CM1, AD1, ADC)
+- Bit operations with conditions (BSET/BSKP ZRO/ONE/BCM/BAC) and status bit names
+- Shift instructions with ROT/ZIN/LIN types and SHR direction
+- Register aliases: RCLR, RINC, RDCR, COPY
+- Physical memory instructions: LDATX, LDXTX, LDDTX, LDBTX, STATX, STZTX, STDTX
+- IRW/IRR with level and register arguments
+- IDENT PL10/PL11/PL12/PL13
+- ND-110 delta instructions: LASB, SASB, LACB, SACB, LXSB, LXCB, SZSB, SZCB
+
+### ESIL Emulation
+
+- ESIL (Evaluable Strings Intermediate Language) strings for instruction stepping
+- Memory reference load/store/arithmetic with all addressing modes
+- Branch and skip condition evaluation
+- Register operation ESIL (RADD, RADD CLD, etc.)
+- Shift and argument instruction ESIL
+- MON trap ESIL
+- Enables `aes` (step), `aec` (continue), and `aepc` (set PC) commands
+
+### Pseudo-Code
+
+- C-like pseudo-code output via `pdc` or `e asm.pseudo=true`
+- Translates loads to `a = *(b + offset)`, stores to `*(b + offset) = a`
+- Branches to `if (a > 0) goto addr`, MON calls to `TRAP(name)`, etc.
+- IOX, shifts, register ops, bit operations, and skip instructions all supported
+
 ### Annotations
+
 - **SINTRAN III MON calls** resolved to name and description
   `MON 50 ; OPEN - OpenFile`
 - **IOX device registers** decoded with device name, register, and I/O direction
   `IOX 1562 ; FLP1 Read Status 1 (Read)`
 
 ### Analysis
+
 - Function discovery and basic block detection
-- **Function prologue detection** -- automatically finds C functions (`COPY SL DA`), PLANC/COBOL entries (`ENTR`), and stack initialization (`INIT`)
+- **Op family classification**: CPU, FPU, I/O, and privileged instruction families
+- **Function prologue detection** -- automatically finds C functions (`COPY SL DA`), PLANC/COBOL entries (`ENTR`), and frame initialization (`INIT`)
 - Branch arrows for conditional jumps, loops, and skip instructions
 - Cross-reference tracking for calls and jumps
-- Full ND-100 register profile: A, T, X, B, L, D, S, P
+- Condition types for all conditional instructions (EQL, GRE, LSS, etc.)
+- Full ND-100 register profile: S (status), D, P, B (frame pointer), L (link), A (accumulator), T, X (index)
+- Address bits callback (16-bit)
+
+**Note:** The ND-100 has no hardware stack. The B register serves as a frame pointer in the ENTR/LEAVE calling convention. Frame-relative accesses (B-relative addressing modes) are tracked for variable detection.
 
 ### Binary Formats
+
 - **a.out16** -- symbol tables, relocation entries, text/data/bss segments, auto-detected by magic `0407`
   - **Imports** -- undefined external symbols exposed via `ii` for dependency analysis
   - **Relocations** -- full relocation table parsing (REL_TEXT, REL_DATA, REL_BSS, REL_UNDEXT, REL_BPTR) via `ir`
+  - **Header display** -- formatted header via `ih` showing magic, sizes, entry point
+  - **Fields** -- structured header fields via `iH`
+  - **Special symbols** -- entry point and main detection via `.binsym`
 - **BPUN** -- preamble parsing, multi-section bootstrap loading, FloMon variant support
 
 ---
@@ -143,6 +207,15 @@ rizin boot.out
 [0x00000000]> VV @ entry0    # Visual control flow graph
 ```
 
+```bash
+# Assemble and disassemble from the command line
+rz-asm -a nd100 'LDA ,B -4'          # Assemble -> fc49
+rz-asm -a nd100 'LDA -4,B'           # nd100-as syntax also works
+rz-asm -a nd100 -d fc49              # Disassemble -> LDA ,B -4
+rz-asm -a nd100 'BSKP ONE 10 DA'     # Bit operations
+rz-asm -a nd100 'RADD CLD SA DA'     # Register ops with modifiers
+```
+
 See [BUILD.md](BUILD.md) for prerequisites and platform-specific setup.
 
 ---
@@ -154,9 +227,10 @@ See [BUILD.md](BUILD.md) for prerequisites and platform-specific setup.
 1. **Open a file** -- load a `.BPUN` or a.out16 binary. Cutter auto-detects the format via the `bin_bpun` or `bin_aout16` loader and sets the architecture to `nd100`.
 2. **Analyze** -- click the Analyze button (or run `aaa`) to discover functions, branches, and cross-references.
 3. **Disassembly view** -- shows ND-100 instructions with inline MON call and IOX device annotations, just like the Rizin command line.
-4. **Graph view** -- displays control flow graphs with branch arrows for skip instructions, conditional jumps, and loops.
-5. **Functions panel** -- lists all discovered functions. For a.out16 files with symbols, the original symbol names appear here.
-6. **Cross-references** -- double-click any call or jump to follow it; use the xrefs panel to see who calls a function.
+4. **Pseudo-code view** -- shows C-like pseudo-code translation of ND-100 assembly when `asm.pseudo` is enabled.
+5. **Graph view** -- displays control flow graphs with branch arrows for skip instructions, conditional jumps, and loops.
+6. **Functions panel** -- lists all discovered functions. For a.out16 files with symbols, the original symbol names appear here.
+7. **Cross-references** -- double-click any call or jump to follow it; use the xrefs panel to see who calls a function.
 
 For raw binary files without a recognized header, set the architecture manually in the load options dialog:
 - Architecture: **nd100**
@@ -173,7 +247,8 @@ See [INSTALL.md](INSTALL.md) for how to install Cutter on Linux and Windows.
 |----------|-------------|
 | [BUILD.md](./BUILD.md) | Build prerequisites and compilation for Linux and Windows |
 | [INSTALL.md](./INSTALL.md) | Plugin installation into Rizin, Cutter setup, and verification |
-| [GETTING-STARTED.md](./GETTING-STARTED.md) | Practical walkthrough: opening files, analysis, searching, visual modes |
+| [GETTING-STARTED.md](./GETTING-STARTED.md) | Practical walkthrough: opening files, analysis, assembler, ESIL, pseudo-code |
+| [ROADMAP.md](./ROADMAP.md) | Feature roadmap and implementation status |
 
 ---
 
@@ -201,6 +276,7 @@ Please keep the code style consistent with the existing codebase (C11, no Unicod
 ## Acknowledgements
 
 - The instruction decoder was adapted from [nd100x](https://github.com/HackerCorpLabs/nd100x), an ND-100 emulator
+- Assembler syntax informed by [nd100-as](https://github.com/HackerCorpLabs/nd100-as), an ND-100 cross-assembler
 - Built on the [Rizin](https://rizin.re/) reverse-engineering framework
 - MON call and IOX device tables derived from original Norsk Data documentation
 
