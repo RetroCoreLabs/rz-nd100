@@ -21,6 +21,7 @@ A plugin suite for [Rizin](https://rizin.re/) and [Cutter](https://cutter.re/) t
 - [Documentation](#documentation)
 - [About the ND-100](#about-the-nd-100)
 - [Contributing](#contributing)
+- [Releases](#releases)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 
@@ -270,6 +271,41 @@ Contributions are welcome. If you find a bug, have a feature request, or want to
 4. Submit a pull request
 
 Please keep the code style consistent with the existing codebase (C11, no Unicode in source files).
+
+---
+
+## Releases
+
+Pre-built plugins for Linux and Windows are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page.
+
+### Creating a new release
+
+1. Update the version in `meson.build`:
+   ```
+   project('rz-nd100', 'c',
+       version: '1.1.0',
+   ```
+
+2. Update the version string in the plugin structs in `src/rz_asm_nd100.c`, `src/rz_analysis_nd100.c`, `src/rz_parse_nd100.c`, `src/rz_bin_bpun.c`, and `src/rz_bin_aout16.c`.
+
+3. Commit the version bump:
+   ```bash
+   git add -A
+   git commit -m "Bump version to 1.1.0"
+   ```
+
+4. Tag and push:
+   ```bash
+   git tag v1.1.0
+   git push && git push --tags
+   ```
+
+The CI workflow builds both Linux and Windows plugins, runs the assembler round-trip tests, and then creates a GitHub release with two archives attached:
+
+- `rz-nd100-linux-x86_64.tar.gz` -- five `.so` plugin files
+- `rz-nd100-windows-x86_64.zip` -- five `.dll` plugin files
+
+Release notes are auto-generated from the commit history since the previous tag.
 
 ---
 
