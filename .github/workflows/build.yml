@@ -103,6 +103,7 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
+            unzip
 
       - name: Download and install Rizin release
         run: |
