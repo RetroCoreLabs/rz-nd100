@@ -172,7 +172,7 @@ rz-asm -L | findstr nd100
 Expected output:
 
 ```
-adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.1
+adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.2
 ```
 
 The `A` flag confirms assembler support is available.
@@ -203,8 +203,8 @@ rizin -qc "iL" NUL | findstr "aout16 bpun"
 Expected output:
 
 ```
-bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.1 Ronny Hansen
-bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
+bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.2 Ronny Hansen
+bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.2 Ronny Hansen
 ```
 
 ---
@@ -291,7 +291,7 @@ rz-asm -L | grep nd100
 Expected output:
 
 ```
-adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.1
+adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.2
 ```
 
 Quick assembler test:
@@ -318,8 +318,8 @@ rizin -qc 'iL' /dev/null | grep -E "aout16|bpun"
 Expected output:
 
 ```
-bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.1 Ronny Hansen
-bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
+bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.2 Ronny Hansen
+bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.2 Ronny Hansen
 ```
 
 ---
