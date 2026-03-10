@@ -53,6 +53,12 @@ The `.msi` installer is recommended. It typically installs Rizin to:
 
 For example: `C:\Users\YourName\AppData\Local\Programs\rizin`
 
+The executables (`rizin.exe`, `rz-asm.exe`, etc.) are in the `bin` subdirectory:
+
+```
+%LOCALAPPDATA%\Programs\rizin\bin
+```
+
 ### Add Rizin to PATH
 
 The Rizin installer does **not** add itself to your `PATH` automatically. Without this step, you cannot run `rizin` or `rz-asm` from a command prompt.
@@ -76,7 +82,7 @@ where /R "C:\Users\%USERNAME%" rizin.exe
 1. Press **Win + R**, type `sysdm.cpl`, press Enter.
 2. Go to the **Advanced** tab and click **Environment Variables**.
 3. Under **User variables**, select **Path** and click **Edit**.
-4. Click **New** and add the Rizin install directory (e.g. `C:\Users\YourName\AppData\Local\Programs\rizin`).
+4. Click **New** and add the Rizin `bin` directory (e.g. `C:\Users\YourName\AppData\Local\Programs\rizin\bin`).
 5. Click **OK** on all dialogs.
 6. Open a **new** command prompt and verify:
 
@@ -87,7 +93,7 @@ rizin -v
 Alternatively, from PowerShell (run as Administrator):
 
 ```powershell
-[Environment]::SetEnvironmentVariable("Path", "$env:LOCALAPPDATA\Programs\rizin;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
+[Environment]::SetEnvironmentVariable("Path", "$env:LOCALAPPDATA\Programs\rizin\bin;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
 ```
 
 Open a **new** terminal window after changing the PATH for it to take effect.
@@ -96,10 +102,10 @@ Open a **new** terminal window after changing the PATH for it to take effect.
 
 ```powershell
 # Command Prompt
-set PATH=%LOCALAPPDATA%\Programs\rizin;%PATH%
+set PATH=%LOCALAPPDATA%\Programs\rizin\bin;%PATH%
 
 # PowerShell
-$env:PATH = "$env:LOCALAPPDATA\Programs\rizin;$env:PATH"
+$env:PATH = "$env:LOCALAPPDATA\Programs\rizin\bin;$env:PATH"
 ```
 
 #### Without modifying PATH
@@ -108,10 +114,10 @@ You can always run Rizin using its full path:
 
 ```powershell
 # Command Prompt
-"%LOCALAPPDATA%\Programs\rizin\rizin.exe" -v
+"%LOCALAPPDATA%\Programs\rizin\bin\rizin.exe" -v
 
 # PowerShell
-& "$env:LOCALAPPDATA\Programs\rizin\rizin.exe" -v
+& "$env:LOCALAPPDATA\Programs\rizin\bin\rizin.exe" -v
 ```
 
 ### Install the Plugins
