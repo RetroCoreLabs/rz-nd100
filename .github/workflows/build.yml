@@ -103,23 +103,25 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-git
-            mingw-w64-x86_64-python
-            mingw-w64-x86_64-capstone
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-libwinpthread-git
 
-      - name: Build and install Rizin from source
+      - name: Download and install Rizin release
         run: |
           set -e
-          git clone --depth 1 --branch v0.8.0 https://github.com/rizinorg/rizin.git
-          cd rizin
-          meson setup build --prefix=/mingw64
-          ninja -C build
-          ninja -C build install
-          rizin -v
-          rz-asm -v
+          curl -Lo rizin.zip https://github.com/rizinorg/rizin/releases/download/v0.8.0/rizin-windows-shared64-v0.8.0.zip
+          unzip -q rizin.zip -d rizin-release
+          echo "=== Rizin release contents ==="
+          ls rizin-release/
+          # Find the actual root dir inside the zip
+          RIZIN_ROOT=$(ls -d rizin-release/*/ | head -1)
+          echo "Rizin root: $RIZIN_ROOT"
+          # Copy into MINGW64 prefix so pkg-config finds it
+          cp -r "$RIZIN_ROOT"/* /mingw64/
+          # Verify
+          echo "=== pkg-config check ==="
+          pkg-config --modversion rz_core || echo "pkg-config failed, checking structure..."
+          ls /mingw64/include/librz/ 2>/dev/null | head -5 || true
+          ls /mingw64/lib/pkgconfig/rz_*.pc 2>/dev/null || true
+          rizin -v || true
 
       - name: Configure
         run: meson setup build
