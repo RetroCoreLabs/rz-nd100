@@ -2,7 +2,23 @@
 
 This guide covers installing the rz-nd100 Rizin plugins on Linux and Windows from pre-built release archives.
 
-If you want to build from source instead, see [Building from Source](#building-from-source) at the bottom of this document.
+## Table of Contents
+
+- [Plugins Overview](#plugins-overview)
+- [Windows](#windows)
+  - [Install Rizin](#install-rizin)
+  - [Add Rizin to PATH](#add-rizin-to-path)
+  - [Install the Plugins](#install-the-plugins)
+  - [Install Cutter (Optional GUI)](#install-cutter-optional-gui)
+  - [Verify the Installation](#verify-the-installation)
+- [Linux](#linux)
+  - [Install Rizin](#install-rizin-1)
+  - [Install the Plugins](#install-the-plugins-1)
+  - [Install Cutter (Optional GUI)](#install-cutter-optional-gui-1)
+  - [Verify the Installation](#verify-the-installation-1)
+- [Using Cutter](#using-cutter)
+- [Uninstalling](#uninstalling)
+- [Building from Source](#building-from-source)
 
 ---
 
@@ -18,32 +34,13 @@ The rz-nd100 project provides five plugins:
 | **bin_aout16** | `bin_aout16.so` / `bin_aout16.dll` | Binary loader | Loads ND-100 a.out16 executable and object files (symbols, relocations, segments, header) |
 | **bin_bpun** | `bin_bpun.so` / `bin_bpun.dll` | Binary loader | Loads BPUN and FloMon bootstrap files |
 
+Pre-built plugin archives for both platforms are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page.
+
 ---
 
-## Step 1: Install Rizin
+## Windows
 
-You must install Rizin before installing the plugins.
-
-### Linux (Ubuntu/Debian)
-
-Install Rizin from the RizinOrg OBS repository (Ubuntu 22.04):
-
-```bash
-echo 'deb http://download.opensuse.org/repositories/home:/RizinOrg/xUbuntu_22.04/ /' | sudo tee /etc/apt/sources.list.d/home:RizinOrg.list
-curl -fsSL https://download.opensuse.org/repositories/home:RizinOrg/xUbuntu_22.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_RizinOrg.gpg > /dev/null
-sudo apt update
-sudo apt install rizin
-```
-
-Verify:
-
-```bash
-rizin -v
-```
-
-Rizin is installed to `/usr/bin/` and is immediately available from any terminal.
-
-### Windows
+### Install Rizin
 
 Download and install the latest Rizin release from:
 <https://github.com/rizinorg/rizin/releases>
@@ -56,11 +53,13 @@ The `.msi` installer is recommended. It typically installs Rizin to:
 
 For example: `C:\Users\YourName\AppData\Local\Programs\rizin`
 
-The installer does **not** add Rizin to your `PATH` automatically, so you will not be able to run `rizin` or `rz-asm` from a command prompt without either adding it to your PATH or using the full path.
+### Add Rizin to PATH
 
-#### Finding the Rizin install location
+The Rizin installer does **not** add itself to your `PATH` automatically. Without this step, you cannot run `rizin` or `rz-asm` from a command prompt.
 
-If you installed Rizin but cannot find it, search for `rizin.exe`:
+#### Finding the install location
+
+If you already installed Rizin but cannot find it:
 
 ```powershell
 where /R "%LOCALAPPDATA%" rizin.exe
@@ -72,9 +71,7 @@ Or search more broadly:
 where /R "C:\Users\%USERNAME%" rizin.exe
 ```
 
-#### Adding Rizin to your PATH (permanently -- recommended)
-
-To make `rizin`, `rz-asm`, and other Rizin tools available in all terminal sessions:
+#### Permanently (recommended)
 
 1. Press **Win + R**, type `sysdm.cpl`, press Enter.
 2. Go to the **Advanced** tab and click **Environment Variables**.
@@ -95,9 +92,7 @@ Alternatively, from PowerShell (run as Administrator):
 
 Open a **new** terminal window after changing the PATH for it to take effect.
 
-#### Adding Rizin to your PATH (current session only)
-
-If you just want to use Rizin in the current terminal without a permanent change:
+#### Current session only
 
 ```powershell
 # Command Prompt
@@ -107,29 +102,129 @@ set PATH=%LOCALAPPDATA%\Programs\rizin;%PATH%
 $env:PATH = "$env:LOCALAPPDATA\Programs\rizin;$env:PATH"
 ```
 
-#### Running Rizin without modifying PATH
+#### Without modifying PATH
 
-You can always run Rizin directly using its full path:
+You can always run Rizin using its full path:
 
 ```powershell
 # Command Prompt
 "%LOCALAPPDATA%\Programs\rizin\rizin.exe" -v
-"%LOCALAPPDATA%\Programs\rizin\rz-asm.exe" -L | findstr nd100
 
 # PowerShell
 & "$env:LOCALAPPDATA\Programs\rizin\rizin.exe" -v
-& "$env:LOCALAPPDATA\Programs\rizin\rz-asm.exe" -L | Select-String nd100
+```
+
+### Install the Plugins
+
+1. Download `rz-nd100-windows-x86_64.zip` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
+
+2. Find your Rizin plugin directory:
+
+   ```powershell
+   rizin -H RZ_USER_PLUGINS
+   ```
+
+   This is typically `%APPDATA%\rizin\plugins` or similar.
+
+3. Create the plugin directory if it does not exist and extract the `.dll` files into it.
+
+   **Using PowerShell:**
+
+   ```powershell
+   $plugdir = (rizin -H RZ_USER_PLUGINS).Trim()
+   New-Item -ItemType Directory -Force -Path $plugdir
+   Expand-Archive -Path rz-nd100-windows-x86_64.zip -DestinationPath $plugdir -Force
+   ```
+
+   **Manually:** open the directory shown by `rizin -H RZ_USER_PLUGINS` in Explorer (create it if it does not exist) and copy all five `.dll` files from the zip into it.
+
+4. Verify the files are in place:
+
+   ```powershell
+   dir $plugdir\*.dll
+   ```
+
+   You should see `asm_nd100.dll`, `analysis_nd100.dll`, `parse_nd100.dll`, `bin_aout16.dll`, and `bin_bpun.dll`.
+
+### Install Cutter (Optional GUI)
+
+Download the Cutter installer from:
+<https://github.com/rizinorg/cutter/releases>
+
+Once the rz-nd100 plugins are installed into Rizin's plugin directory, Cutter picks them up automatically -- no extra configuration needed.
+
+### Verify the Installation
+
+**Assembler plugin:**
+
+```powershell
+rz-asm -L | findstr nd100
+```
+
+Expected output:
+
+```
+adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.1
+```
+
+The `A` flag confirms assembler support is available.
+
+Quick assembler test:
+
+```powershell
+rz-asm -a nd100 "LDA ,B -4"
+rz-asm -a nd100 -d fc49
+```
+
+Expected: `fc49` and `LDA ,B -4`.
+
+**Analysis and parser plugins:**
+
+```powershell
+rizin -qc "e asm.arch=nd100; aai" NUL
+```
+
+If no errors appear, the analysis plugin is loaded correctly.
+
+**Binary loader plugins:**
+
+```powershell
+rizin -qc "iL" NUL | findstr "aout16 bpun"
+```
+
+Expected output:
+
+```
+bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.1 Ronny Hansen
+bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
 ```
 
 ---
 
-## Step 2: Install the Plugins
+## Linux
 
-Pre-built plugin archives for Linux and Windows are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page.
+### Install Rizin
 
-### Linux
+Install Rizin from the RizinOrg OBS repository (Ubuntu 22.04):
 
-1. Download `rz-nd100-linux-x86_64.tar.gz` from the latest release.
+```bash
+echo 'deb http://download.opensuse.org/repositories/home:/RizinOrg/xUbuntu_22.04/ /' | sudo tee /etc/apt/sources.list.d/home:RizinOrg.list
+curl -fsSL https://download.opensuse.org/repositories/home:RizinOrg/xUbuntu_22.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_RizinOrg.gpg > /dev/null
+sudo apt update
+sudo apt install rizin
+```
+
+Rizin is installed to `/usr/bin/` and is immediately available from any terminal.
+
+Verify:
+
+```bash
+rizin -v
+```
+
+### Install the Plugins
+
+1. Download `rz-nd100-linux-x86_64.tar.gz` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
 
 2. Find your Rizin plugin directory:
 
@@ -138,7 +233,7 @@ Pre-built plugin archives for Linux and Windows are available on the [Releases](
    echo "$PLUGDIR"
    ```
 
-   This is typically `~/.local/lib/rizin/plugins` or similar. If you prefer a system-wide install, use the system plugin directory instead:
+   This is typically `~/.local/lib/rizin/plugins` or similar. For a system-wide install, use the system plugin directory instead:
 
    ```bash
    PLUGDIR=$(rizin -H RZ_LIB_PLUGINS)
@@ -167,45 +262,7 @@ Pre-built plugin archives for Linux and Windows are available on the [Releases](
 
    You should see `asm_nd100.so`, `analysis_nd100.so`, `parse_nd100.so`, `bin_aout16.so`, and `bin_bpun.so`.
 
-### Windows
-
-1. Download `rz-nd100-windows-x86_64.zip` from the latest release.
-
-2. Find your Rizin plugin directory. Open a command prompt and run:
-
-   ```powershell
-   rizin -H RZ_USER_PLUGINS
-   ```
-
-   This is typically `%APPDATA%\rizin\plugins` or similar.
-
-3. Create the plugin directory if it does not exist and extract the `.dll` files into it.
-
-   **Using PowerShell:**
-
-   ```powershell
-   $plugdir = (rizin -H RZ_USER_PLUGINS).Trim()
-   New-Item -ItemType Directory -Force -Path $plugdir
-   Expand-Archive -Path rz-nd100-windows-x86_64.zip -DestinationPath $plugdir -Force
-   ```
-
-   **Manually:** open the directory shown by `rizin -H RZ_USER_PLUGINS` in Explorer (create it if it does not exist) and copy all five `.dll` files from the zip into it.
-
-4. Verify the files are in place:
-
-   ```powershell
-   dir $plugdir\*.dll
-   ```
-
-   You should see `asm_nd100.dll`, `analysis_nd100.dll`, `parse_nd100.dll`, `bin_aout16.dll`, and `bin_bpun.dll`.
-
----
-
-## Step 3: Install Cutter (Optional GUI)
-
-[Cutter](https://cutter.re/) is the official GUI for Rizin. Once the rz-nd100 plugins are installed, Cutter picks them up automatically -- no extra configuration needed.
-
-### Linux
+### Install Cutter (Optional GUI)
 
 Install Cutter from the same RizinOrg OBS repository:
 
@@ -213,18 +270,11 @@ Install Cutter from the same RizinOrg OBS repository:
 sudo apt install cutter-re
 ```
 
-### Windows
+Once the rz-nd100 plugins are installed into Rizin's plugin directory, Cutter picks them up automatically -- no extra configuration needed.
 
-Download the Cutter installer from:
-<https://github.com/rizinorg/cutter/releases>
+### Verify the Installation
 
----
-
-## Step 4: Verify the Installation
-
-After installing Rizin and the plugins, verify that everything loads correctly.
-
-### Disassembler and assembler plugin (asm_nd100)
+**Assembler plugin:**
 
 ```bash
 rz-asm -L | grep nd100
@@ -236,8 +286,6 @@ Expected output:
 adAe_ 16         nd100       LGPL3   Norsk Data ND-100/ND-110 disassembler and assembler (by Ronny Hansen) v1.0.1
 ```
 
-The `A` flag confirms assembler support is available.
-
 Quick assembler test:
 
 ```bash
@@ -245,14 +293,7 @@ rz-asm -a nd100 'LDA ,B -4'     # Should output: fc49
 rz-asm -a nd100 -d fc49          # Should output: LDA ,B -4
 ```
 
-On Windows (Command Prompt), use double quotes:
-
-```powershell
-rz-asm -a nd100 "LDA ,B -4"
-rz-asm -a nd100 -d fc49
-```
-
-### Analysis plugin (analysis_nd100)
+**Analysis and parser plugins:**
 
 ```bash
 rizin -qc "e asm.arch=nd100; aai" /dev/null 2>&1 | head -1
@@ -260,21 +301,7 @@ rizin -qc "e asm.arch=nd100; aai" /dev/null 2>&1 | head -1
 
 If no errors appear, the analysis plugin is loaded correctly.
 
-On Windows, use `NUL` instead of `/dev/null`:
-
-```powershell
-rizin -qc "e asm.arch=nd100; aai" NUL
-```
-
-### Parser plugin (parse_nd100)
-
-```bash
-rizin -qc "e asm.arch=nd100; e asm.pseudo=true; e asm.bits=16" /dev/null 2>&1
-```
-
-### Binary loader plugins (bin_aout16 and bin_bpun)
-
-External plugins are not listed by `rz-bin -L`. Use Rizin's `iL` command instead:
+**Binary loader plugins:**
 
 ```bash
 rizin -qc 'iL' /dev/null | grep -E "aout16|bpun"
@@ -287,13 +314,11 @@ bin  aout16      Norsk Data ND-100 a.out16 format (LGPL3) 1.0.1 Ronny Hansen
 bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
 ```
 
-On Windows:
+---
 
-```powershell
-rizin -qc "iL" NUL | findstr "aout16 bpun"
-```
+## Using Cutter
 
-### Using Cutter (GUI)
+[Cutter](https://cutter.re/) is the official GUI for Rizin. These steps apply to both Windows and Linux.
 
 1. Open Cutter and load an ND-100 binary file (a.out16 or BPUN format).
 2. Cutter should auto-detect the format via the `bin_aout16` or `bin_bpun` loader.
@@ -311,20 +336,20 @@ For raw binary files without a recognized header, set the architecture manually 
 
 ### Plugins installed from release
 
-Remove the five plugin files from the plugin directory:
-
-**Linux:**
-
-```bash
-PLUGDIR=$(rizin -H RZ_USER_PLUGINS)
-rm -f "$PLUGDIR"/asm_nd100.so "$PLUGDIR"/analysis_nd100.so "$PLUGDIR"/parse_nd100.so "$PLUGDIR"/bin_aout16.so "$PLUGDIR"/bin_bpun.so
-```
+Remove the five plugin files from the plugin directory.
 
 **Windows (PowerShell):**
 
 ```powershell
 $plugdir = (rizin -H RZ_USER_PLUGINS).Trim()
 Remove-Item "$plugdir\asm_nd100.dll", "$plugdir\analysis_nd100.dll", "$plugdir\parse_nd100.dll", "$plugdir\bin_aout16.dll", "$plugdir\bin_bpun.dll"
+```
+
+**Linux:**
+
+```bash
+PLUGDIR=$(rizin -H RZ_USER_PLUGINS)
+rm -f "$PLUGDIR"/asm_nd100.so "$PLUGDIR"/analysis_nd100.so "$PLUGDIR"/parse_nd100.so "$PLUGDIR"/bin_aout16.so "$PLUGDIR"/bin_bpun.so
 ```
 
 ### Plugins installed from source
@@ -341,7 +366,7 @@ ninja -C build uninstall
 
 ## Building from Source
 
-If you prefer to compile the plugins yourself rather than using the pre-built release, you will need a C compiler, Meson, Ninja, and the Rizin development headers. See [BUILD.md](BUILD.md) for full details.
+If you prefer to compile the plugins yourself rather than using the pre-built release, you will need a C compiler, Meson, Ninja, and the Rizin development headers. See [BUILD.md](BUILD.md) for full prerequisites and details.
 
 ### Linux
 
