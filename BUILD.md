@@ -125,7 +125,7 @@ pkg-config --modversion rz_core
 ### Linux
 
 ```bash
-git clone https://github.com/<your-org>/rz-nd100
+git clone https://github.com/HackerCorpLabs/rz-nd100
 cd rz-nd100
 meson setup build
 ninja -C build
@@ -134,13 +134,12 @@ ninja -C build
 ### Windows (Developer Command Prompt or MSYS2 terminal)
 
 ```powershell
-git clone https://github.com/<your-org>/rz-nd100
+git clone https://github.com/HackerCorpLabs/rz-nd100
 cd rz-nd100
 meson setup build
 ninja -C build
 ```
 
-> Replace `<your-org>` with the actual GitHub organization or username.
 
 ### Build options
 

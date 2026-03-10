@@ -113,9 +113,9 @@ jobs:
       - name: Build and install Rizin from source
         run: |
           set -e
-          git clone --depth 1 https://github.com/rizinorg/rizin.git
+          git clone --depth 1 --branch v0.8.0 https://github.com/rizinorg/rizin.git
           cd rizin
-          meson setup build --prefix=/mingw64 -Dpackager=true
+          meson setup build --prefix=/mingw64
           ninja -C build
           ninja -C build install
           rizin -v
