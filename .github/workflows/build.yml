@@ -77,13 +77,13 @@ jobs:
         run: |
           mkdir -p dist
           cp build/*.so dist/
-          cd dist && tar czf ../rz-nd100-linux-x86_64.tar.gz *.so
+          cd dist && tar czf ../rz-nd100-linux.tar.gz *.so
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: rz-nd100-linux
-          path: rz-nd100-linux-x86_64.tar.gz
+          path: rz-nd100-linux.tar.gz
 
   windows:
     runs-on: windows-latest
@@ -108,7 +108,7 @@ jobs:
       - name: Download and install Rizin release
         run: |
           set -e
-          curl -Lo rizin.zip https://github.com/rizinorg/rizin/releases/download/v0.8.0/rizin-windows-shared64-v0.8.0.zip
+          curl -Lo rizin.zip https://github.com/rizinorg/rizin/releases/download/v0.8.2/rizin-windows-shared64-v0.8.2.zip
           unzip -q rizin.zip -d rizin-release
           echo "=== Rizin release contents ==="
           ls rizin-release/
@@ -204,12 +204,12 @@ jobs:
 
       - name: Package Windows plugins
         run: |
-          cd win-plugins && zip ../release/rz-nd100-windows-x86_64.zip *.dll
+          cd win-plugins && zip ../release/rz-nd100-windows.zip *.dll
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            release/rz-nd100-linux-x86_64.tar.gz
-            release/rz-nd100-windows-x86_64.zip
+            release/rz-nd100-linux.tar.gz
+            release/rz-nd100-windows.zip

@@ -42,10 +42,10 @@ Pre-built plugin archives for both platforms are available on the [Releases](htt
 
 ### Install Rizin
 
-Download and install the latest Rizin release from:
+Download and install Rizin (version 0.8.0 or later) from:
 <https://github.com/rizinorg/rizin/releases>
 
-The `.msi` installer is recommended. It typically installs Rizin to:
+The pre-built Windows plugins are built against Rizin 0.8.2. The `.msi` installer is recommended. It typically installs Rizin to:
 
 ```
 %LOCALAPPDATA%\Programs\rizin
@@ -122,7 +122,7 @@ You can always run Rizin using its full path:
 
 ### Install the Plugins
 
-1. Download `rz-nd100-windows-x86_64.zip` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
+1. Download `rz-nd100-windows.zip` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
 
 2. Find your Rizin plugin directory:
 
@@ -130,7 +130,7 @@ You can always run Rizin using its full path:
    rizin -H RZ_USER_PLUGINS
    ```
 
-   This is typically `%APPDATA%\rizin\plugins` or similar.
+   This is typically `%USERPROFILE%\.local\lib\rizin\plugins` (e.g. `C:\Users\YourName\.local\lib\rizin\plugins`).
 
 3. Create the plugin directory if it does not exist and extract the `.dll` files into it.
 
@@ -139,8 +139,10 @@ You can always run Rizin using its full path:
    ```powershell
    $plugdir = (rizin -H RZ_USER_PLUGINS).Trim()
    New-Item -ItemType Directory -Force -Path $plugdir
-   Expand-Archive -Path rz-nd100-windows-x86_64.zip -DestinationPath $plugdir -Force
+   Expand-Archive -Path "$HOME\Downloads\rz-nd100-windows.zip" -DestinationPath $plugdir -Force
    ```
+
+   Adjust the path to the zip file if you saved it somewhere other than your Downloads folder.
 
    **Manually:** open the directory shown by `rizin -H RZ_USER_PLUGINS` in Explorer (create it if it does not exist) and copy all five `.dll` files from the zip into it.
 
@@ -211,7 +213,7 @@ bin  bpun        Norsk Data BPUN bootstrap format (LGPL3) 1.0.1 Ronny Hansen
 
 ### Install Rizin
 
-Install Rizin from the RizinOrg OBS repository (Ubuntu 22.04):
+Install Rizin (version 0.8.0 or later) from the RizinOrg OBS repository (Ubuntu 22.04). The pre-built Linux plugins are built against Rizin 0.8.0:
 
 ```bash
 echo 'deb http://download.opensuse.org/repositories/home:/RizinOrg/xUbuntu_22.04/ /' | sudo tee /etc/apt/sources.list.d/home:RizinOrg.list
@@ -230,7 +232,7 @@ rizin -v
 
 ### Install the Plugins
 
-1. Download `rz-nd100-linux-x86_64.tar.gz` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
+1. Download `rz-nd100-linux.tar.gz` from the [latest release](https://github.com/HackerCorpLabs/rz-nd100/releases).
 
 2. Find your Rizin plugin directory:
 
@@ -250,14 +252,14 @@ rizin -v
 
    ```bash
    mkdir -p "$PLUGDIR"
-   tar xzf rz-nd100-linux-x86_64.tar.gz -C "$PLUGDIR"
+   tar xzf rz-nd100-linux.tar.gz -C "$PLUGDIR"
    ```
 
    For the system-wide directory, prefix with `sudo`:
 
    ```bash
    sudo mkdir -p "$PLUGDIR"
-   sudo tar xzf rz-nd100-linux-x86_64.tar.gz -C "$PLUGDIR"
+   sudo tar xzf rz-nd100-linux.tar.gz -C "$PLUGDIR"
    ```
 
 4. Verify the files are in place:

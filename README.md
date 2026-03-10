@@ -16,6 +16,7 @@ A plugin suite for [Rizin](https://rizin.re/) and [Cutter](https://cutter.re/) t
 - [What It Looks Like](#what-it-looks-like)
 - [Plugins](#plugins)
 - [Features](#features)
+- [Requirements](#requirements)
 - [Quick Start](#quick-start)
 - [Using with Cutter (GUI)](#using-with-cutter-gui)
 - [Documentation](#documentation)
@@ -183,6 +184,12 @@ The build produces five plugins that integrate seamlessly with Rizin and Cutter:
 
 ---
 
+## Requirements
+
+- **Rizin >= 0.8.0** (tested with 0.8.0 on Linux and 0.8.2 on Windows)
+- Pre-built binaries are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page -- no compiler needed
+- Building from source requires a C11 compiler, Meson, and Ninja (see [BUILD.md](BUILD.md))
+
 ## Quick Start
 
 ```bash
@@ -302,8 +309,8 @@ Pre-built plugins for Linux and Windows are available on the [Releases](https://
 
 The CI workflow builds both Linux and Windows plugins, runs the assembler round-trip tests, and then creates a GitHub release with two archives attached:
 
-- `rz-nd100-linux-x86_64.tar.gz` -- five `.so` plugin files
-- `rz-nd100-windows-x86_64.zip` -- five `.dll` plugin files
+- `rz-nd100-linux.tar.gz` -- five `.so` plugin files
+- `rz-nd100-windows.zip` -- five `.dll` plugin files
 
 Release notes are auto-generated from the commit history since the previous tag.
 
