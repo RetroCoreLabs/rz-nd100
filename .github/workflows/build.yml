@@ -96,7 +96,23 @@ jobs:
             mingw-w64-x86_64-meson
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-rizin
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-git
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-capstone
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-libwinpthread-git
+
+      - name: Build and install Rizin from source
+        run: |
+          set -e
+          git clone --depth 1 https://github.com/rizinorg/rizin.git
+          cd rizin
+          meson setup build --prefix=/mingw64 -Dpackager=true
+          ninja -C build
+          ninja -C build install
+          rizin -v
+          rz-asm -v
 
       - name: Configure
         run: meson setup build
