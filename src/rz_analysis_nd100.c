@@ -112,6 +112,19 @@ static int nd100_address_bits(RzAnalysis *a, int bits) {
 	return 16;
 }
 
+/* Compute PC-relative branch target.
+ * ND-100 uses 16-bit word addresses with signed 8-bit offset.
+ * addr is in byte-address space (word_addr * 2).
+ * Result is clamped to valid byte-address range to prevent
+ * wrapping to huge 64-bit values that crash the analysis engine. */
+static ut64 branch_target(ut64 addr, int offset) {
+	st64 target = (st64)addr + (st64)offset * 2;
+	if (target < 0) {
+		return 0;
+	}
+	return (ut64)target & 0x1FFFE; /* 16-bit word address space = 128K byte addresses */
+}
+
 static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 		    const ut8 *data, int len, RzAnalysisOpMask mask) {
 	uint16_t word;
@@ -351,7 +364,7 @@ static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 		op->family = RZ_ANALYSIS_OP_FAMILY_CPU;
 		if (relmode == 0) {
 			op->type = RZ_ANALYSIS_OP_TYPE_JMP;
-			op->jump = addr + (st64)offset * 2;
+			op->jump = branch_target(addr, offset);
 			if (do_esil) {
 				rz_strbuf_setf(&op->esil, "0x%"PFMT64x",pc,=",
 					op->jump);
@@ -365,7 +378,7 @@ static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 		uint16_t cond_bits = (word >> 8) & 0x07;
 		op->type = RZ_ANALYSIS_OP_TYPE_CJMP;
 		op->family = RZ_ANALYSIS_OP_FAMILY_CPU;
-		op->jump = addr + (st64)offset * 2;
+		op->jump = branch_target(addr, offset);
 		op->fail = addr + 2;
 
 		switch (cond_bits) {
@@ -439,7 +452,7 @@ static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 		op->family = RZ_ANALYSIS_OP_FAMILY_CPU;
 		if (relmode == 0) {
 			op->type = RZ_ANALYSIS_OP_TYPE_CALL;
-			op->jump = addr + (st64)offset * 2;
+			op->jump = branch_target(addr, offset);
 			op->fail = addr + 2;
 			/* JPL saves return address in L register */
 			op->stackop = RZ_ANALYSIS_STACK_INC;
