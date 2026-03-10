@@ -120,10 +120,10 @@ static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 	int relmode;
 	int do_esil = (mask & RZ_ANALYSIS_OP_MASK_ESIL);
 
-	if (len < 2) {
+	if (!data || len < 2) {
 		op->type = RZ_ANALYSIS_OP_TYPE_ILL;
-		op->size = 0;
-		return 0;
+		op->size = 2;
+		return 2;
 	}
 
 	op->size = 2;
@@ -469,25 +469,29 @@ static int nd100_op(RzAnalysis *a, RzAnalysisOp *op, ut64 addr,
 		/* ENTR (0140135) - allocate frame via B register.
 		 * ENTR / frame_demand / <error> / <normal>
 		 * Success: skip to addr+6, error: addr+4 */
-		op->size = 4;
 		op->family = RZ_ANALYSIS_OP_FAMILY_CPU;
 		if (len >= 4) {
+			op->size = 4;
 			op->type = RZ_ANALYSIS_OP_TYPE_CJMP;
 			op->jump = addr + 6;
 			op->fail = addr + 4;
 			op->stackop = RZ_ANALYSIS_STACK_INC;
+		} else {
+			op->type = RZ_ANALYSIS_OP_TYPE_UNK;
 		}
 	} else if (word == 0xC05C) {
 		/* INIT (0140134) - initialize frame area.
 		 * Consumes 6 inline words, total size = 14 bytes.
 		 * Success: addr+14, error: addr+12 */
-		op->size = 14;
 		op->family = RZ_ANALYSIS_OP_FAMILY_CPU;
 		if (len >= 14) {
+			op->size = 14;
 			op->type = RZ_ANALYSIS_OP_TYPE_CJMP;
 			op->jump = addr + 14;
 			op->fail = addr + 12;
 			op->stackop = RZ_ANALYSIS_STACK_RESET;
+		} else {
+			op->type = RZ_ANALYSIS_OP_TYPE_UNK;
 		}
 	} else if (word == 0xC09E || word == 0xC09F) {
 		/* LEAVE (0140136) / ELEAV (0140137) - return from ENTR */
@@ -1003,23 +1007,41 @@ static RzList /*<RzSearchKeyword *>*/ *nd100_preludes(RzAnalysis *a) {
 		return NULL;
 	}
 
-	/* C compiler prologue: COPY SL DA (0xC838)
-	 * Bytes: 0x38 0xC8 (little-endian) */
-	rz_list_push(list, rz_search_keyword_new(
-		(const ut8 *)"\x38\xc8", 2,
-		NULL, 0, NULL));
+	if (a->big_endian) {
+		/* Big-endian (BPUN format) */
 
-	/* ENTR (0xC05D) - PLANC/COBOL frame entry
-	 * Bytes: 0x5D 0xC0 (little-endian) */
-	rz_list_push(list, rz_search_keyword_new(
-		(const ut8 *)"\x5d\xc0", 2,
-		NULL, 0, NULL));
+		/* C compiler prologue: COPY SL DA (0xC838) */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\xc8\x38", 2,
+			NULL, 0, NULL));
 
-	/* INIT (0xC05C) - frame area initialization
-	 * Bytes: 0x5C 0xC0 (little-endian) */
-	rz_list_push(list, rz_search_keyword_new(
-		(const ut8 *)"\x5c\xc0", 2,
-		NULL, 0, NULL));
+		/* ENTR (0xC05D) - PLANC/COBOL frame entry */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\xc0\x5d", 2,
+			NULL, 0, NULL));
+
+		/* INIT (0xC05C) - frame area initialization */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\xc0\x5c", 2,
+			NULL, 0, NULL));
+	} else {
+		/* Little-endian (a.out16 format) */
+
+		/* C compiler prologue: COPY SL DA (0xC838) */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\x38\xc8", 2,
+			NULL, 0, NULL));
+
+		/* ENTR (0xC05D) - PLANC/COBOL frame entry */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\x5d\xc0", 2,
+			NULL, 0, NULL));
+
+		/* INIT (0xC05C) - frame area initialization */
+		rz_list_push(list, rz_search_keyword_new(
+			(const ut8 *)"\x5c\xc0", 2,
+			NULL, 0, NULL));
+	}
 
 	return list;
 }
