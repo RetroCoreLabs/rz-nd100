@@ -146,7 +146,9 @@ jobs:
 
       - name: Verify plugins load
         run: |
-          rz-asm -L | grep nd100
+          output=$(rz-asm -L 2>/dev/null | grep nd100 || true)
+          echo "$output"
+          echo "$output" | grep -q nd100
 
       - name: Test assembler round-trip
         run: |
