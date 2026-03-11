@@ -53,3 +53,14 @@ The analysis plugin classifies instructions by their top bits:
 - `0xA000-0xA700` -- conditional branches (JAP, JAN, JAZ, JAF), type `RZ_ANALYSIS_OP_TYPE_CJMP`
 - `0xB000` range -- JPL (call), type `RZ_ANALYSIS_OP_TYPE_CALL`
 - `0xF800` range -- skip instructions (SKP, BSKP), type `RZ_ANALYSIS_OP_TYPE_CJMP` with jump=PC+4, fail=PC+2
+
+## Windows Build Notes
+
+- **Windows CI must use `--buildtype=release`**. Meson defaults to `debug`, which links plugins against the MSVC debug CRT (`ucrtd.dll`/`vcruntimed140d.dll`). Rizin's release binary uses the release CRT (`ucrt.dll`/`vcruntime140.dll`). These maintain separate heaps -- memory allocated by one cannot be freed by the other, causing `_CrtIsValidHeapPointer` assertion failures during `aa`/`aaa` analysis. The debug CRT fires these assertions even without a debugger attached.
+- **Set `CC=cl`** in the Windows CI configure step to bypass Strawberry Perl's `ccache.EXE` that can appear on GitHub Actions runners and cause stale cache issues.
+- Verify correct CRT linkage with `dumpbin /dependents plugin.dll` -- should show `vcruntime140.dll`, not `vcruntimed140d.dll`.
+
+## Important Constraints
+
+- **MAX_OP_SIZE must match the largest instruction.** INIT (0140134) consumes 6 inline words for a total of 14 bytes. ENTR (0140135) is 4 bytes. The `nd100_archinfo()` MAX_OP_SIZE return value must be 14 so Rizin sizes instruction buffers correctly. Returning `op->size` larger than MAX_OP_SIZE is undefined behavior from Rizin's perspective.
+- **User plugin directory (`~/.local/lib/.../rizin/plugins/`) takes priority** over the system plugin directory. Stale plugins there will shadow newly installed system plugins. Check with `rizin -H | grep PLUG` and remove old copies if version mismatches occur.
