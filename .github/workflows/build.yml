@@ -126,7 +126,9 @@ jobs:
 
       - name: Configure
         shell: cmd
-        run: meson setup build
+        run: |
+          set CC=cl
+          meson setup build --buildtype=release
 
       - name: Build
         shell: cmd

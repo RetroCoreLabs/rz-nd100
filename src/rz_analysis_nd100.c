@@ -96,7 +96,7 @@ static int nd100_archinfo(RzAnalysis *a, RzAnalysisInfoType query) {
 	case RZ_ANALYSIS_ARCHINFO_MIN_OP_SIZE:
 		return 2;
 	case RZ_ANALYSIS_ARCHINFO_MAX_OP_SIZE:
-		return 2;
+		return 14;
 	case RZ_ANALYSIS_ARCHINFO_TEXT_ALIGN:
 		return 2;
 	case RZ_ANALYSIS_ARCHINFO_DATA_ALIGN:
@@ -1090,7 +1090,7 @@ RzAnalysisPlugin rz_analysis_plugin_nd100 = {
 	.license = "LGPL3",
 	.arch = "nd100",
 	.author = "Ronny Hansen",
-	.version = "1.0.5",
+	.version = "1.0.6",
 	.bits = 16,
 	.esil = true,
 	.archinfo = &nd100_archinfo,

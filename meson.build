@@ -1,5 +1,5 @@
 project('rz-nd100', 'c',
-    version: '1.0.5',
+    version: '1.0.6',
     license: 'LGPL-3.0-only',
     default_options: ['c_std=c11', 'warning_level=2'],
 )

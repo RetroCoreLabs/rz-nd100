@@ -23,7 +23,6 @@ struct bpun_obj {
 	uint16_t load_addr;     /* load address of binary data */
 	uint16_t word_count;    /* word count of binary data */
 	int is_flomon;          /* FloMon format flag */
-	ut8 *data;              /* raw file data for mapping */
 	ut64 data_offset;       /* file offset where binary data starts */
 	ut64 data_size;         /* size of binary data in bytes */
 };
@@ -194,7 +193,6 @@ static void bpun_destroy(RzBinFile *bf) {
 	}
 	obj = bf->o->bin_obj;
 	if (obj) {
-		free(obj->data);
 		free(obj);
 	}
 	bf->o->bin_obj = NULL;
@@ -350,7 +348,7 @@ RzBinPlugin rz_bin_plugin_bpun = {
 	.name = "bpun",
 	.desc = "Norsk Data BPUN bootstrap format",
 	.author = "Ronny Hansen",
-	.version = "1.0.5",
+	.version = "1.0.6",
 	.license = "LGPL3",
 	.check_buffer = &bpun_check_buffer,
 	.load_buffer = &bpun_load_buffer,
