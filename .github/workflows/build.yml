@@ -141,6 +141,7 @@ jobs:
       - name: Install and verify plugins
         shell: cmd
         run: |
+          if not exist "%RIZIN_ROOT%\lib\plugins" mkdir "%RIZIN_ROOT%\lib\plugins"
           for %%f in (build\*.dll) do copy /Y "%%f" "%RIZIN_ROOT%\lib\plugins\"
           rz-asm -L | findstr nd100
 
