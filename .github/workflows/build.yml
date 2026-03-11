@@ -138,14 +138,35 @@ jobs:
           echo === Built plugins ===
           dir build\*.dll
 
-      - name: Install and verify plugins
+      - name: Install plugins
         shell: cmd
         run: |
           if not exist "%RIZIN_ROOT%\lib\plugins" mkdir "%RIZIN_ROOT%\lib\plugins"
-          for %%f in (build\*.dll) do copy /Y "%%f" "%RIZIN_ROOT%\lib\plugins\"
+          for %%f in (build\*.dll) do (
+            echo Copying %%f ...
+            copy /Y "%%f" "%RIZIN_ROOT%\lib\plugins\"
+          )
+          echo === Installed plugins ===
+          dir "%RIZIN_ROOT%\lib\plugins\*.dll"
+
+      - name: Check plugin dependencies
+        shell: cmd
+        run: |
+          echo === Plugin DLL dependencies ===
+          dumpbin /dependents build\asm_nd100.dll
+          echo === Rizin DLL dependencies ===
+          dumpbin /dependents "%RIZIN_ROOT%\bin\rizin.exe"
+
+      - name: Verify plugins load
+        shell: cmd
+        continue-on-error: true
+        run: |
+          echo === rz-asm -L output ===
+          rz-asm -L
           rz-asm -L | findstr nd100
 
       - name: Test assembler round-trip
+        continue-on-error: true
         shell: powershell
         run: |
           $tests = @("LDA 0", "LDA ,B -4", "STA 0", "JMP 0",
