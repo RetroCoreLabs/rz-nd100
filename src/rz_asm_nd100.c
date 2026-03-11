@@ -238,7 +238,7 @@ static int parse_dreg_full(const char *s) {
 
 /* Check if token matches (case-insensitive, delimited by space/null) */
 static int tok_match(const char *s, const char *tok) {
-	int len = strlen(tok);
+	int len = (int)strlen(tok);
 	if (rz_str_ncasecmp(s, tok, len) != 0) return 0;
 	return (s[len] == '\0' || isspace((unsigned char)s[len]) ||
 		s[len] == ',' || s[len] == ';');
@@ -254,13 +254,13 @@ static int assemble(RzAsm *a, RzAsmOp *op, const char *input) {
 	ut8 outbuf[2];
 
 	/* Copy input, strip leading whitespace and comments */
-	strncpy(buf, input, sizeof(buf) - 1);
+	rz_str_ncpy(buf, input, sizeof(buf));
 	buf[sizeof(buf) - 1] = '\0';
 	{
 		char *semi = strchr(buf, ';');
 		if (semi) *semi = '\0';
 		/* Trim trailing whitespace */
-		int l = strlen(buf);
+		int l = (int)strlen(buf);
 		while (l > 0 && isspace((unsigned char)buf[l-1])) buf[--l] = '\0';
 	}
 	p = skip_ws(buf);
@@ -420,7 +420,7 @@ static int assemble(RzAsm *a, RzAsmOp *op, const char *input) {
 		};
 		int i;
 		for (i = 0; memref[i].name; i++) {
-			int nlen = strlen(memref[i].name);
+			int nlen = (int)strlen(memref[i].name);
 			if (rz_str_ncasecmp(p, memref[i].name, nlen) == 0 &&
 			    (p[nlen] == '\0' || isspace((unsigned char)p[nlen]))) {
 				p = skip_ws(p + nlen);
@@ -463,7 +463,7 @@ static int assemble(RzAsm *a, RzAsmOp *op, const char *input) {
 		};
 		int i;
 		for (i = 0; cbr[i].name; i++) {
-			int nlen = strlen(cbr[i].name);
+			int nlen = (int)strlen(cbr[i].name);
 			if (rz_str_ncasecmp(p, cbr[i].name, nlen) == 0 &&
 			    (p[nlen] == '\0' || isspace((unsigned char)p[nlen]))) {
 				p = skip_ws(p + nlen);
@@ -486,7 +486,7 @@ static int assemble(RzAsm *a, RzAsmOp *op, const char *input) {
 		};
 		int i;
 		for (i = 0; arg[i].name; i++) {
-			int nlen = strlen(arg[i].name);
+			int nlen = (int)strlen(arg[i].name);
 			if (rz_str_ncasecmp(p, arg[i].name, nlen) == 0 &&
 			    (p[nlen] == '\0' || isspace((unsigned char)p[nlen]))) {
 				p = skip_ws(p + nlen);
@@ -1053,7 +1053,7 @@ RzAsmPlugin rz_asm_plugin_nd100 = {
 	.name = "nd100",
 	.arch = "nd100",
 	.author = "Ronny Hansen",
-	.version = "1.0.4",
+	.version = "1.0.5",
 	.cpus = "nd100,nd110",
 	.desc = "Norsk Data ND-100/ND-110 disassembler and assembler",
 	.license = "LGPL3",

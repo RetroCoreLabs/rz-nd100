@@ -145,7 +145,7 @@ static bool bpun_check_buffer(RzBuffer *buf) {
 	int has_slash = 0;
 	int has_digits = 0;
 
-	n = rz_buf_read_at(buf, 0, data, sizeof(data));
+	n = (int)rz_buf_read_at(buf, 0, data, sizeof(data));
 	if (n < 4) {
 		return false;
 	}
@@ -350,7 +350,7 @@ RzBinPlugin rz_bin_plugin_bpun = {
 	.name = "bpun",
 	.desc = "Norsk Data BPUN bootstrap format",
 	.author = "Ronny Hansen",
-	.version = "1.0.4",
+	.version = "1.0.5",
 	.license = "LGPL3",
 	.check_buffer = &bpun_check_buffer,
 	.load_buffer = &bpun_load_buffer,

@@ -81,10 +81,9 @@ static bool nd100_parse(RzParse *p, const char *assembly, RzStrBuf *sb) {
 			while (isspace((unsigned char)*op)) op++;
 		}
 		/* Remaining is the offset */
-		strncpy(off_str, op, sizeof(off_str) - 1);
-		off_str[sizeof(off_str) - 1] = '\0';
+		rz_str_ncpy(off_str, op, sizeof(off_str));
 		/* Trim */
-		int ol = strlen(off_str);
+		int ol = (int)strlen(off_str);
 		while (ol > 0 && isspace((unsigned char)off_str[ol-1])) off_str[--ol] = '\0';
 
 		/* Build EA expression */
