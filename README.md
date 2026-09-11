@@ -187,7 +187,7 @@ The build produces five plugins that integrate seamlessly with Rizin and Cutter:
 ## Requirements
 
 - **Rizin >= 0.8.0** (tested with 0.8.0 on Linux and 0.8.2 on Windows)
-- Pre-built binaries are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page -- no compiler needed
+- Pre-built binaries are available on the [Releases](https://github.com/RetroCoreLabs/rz-nd100/releases) page -- no compiler needed
 - Building from source requires a C11 compiler, Meson, and Ninja (see [BUILD.md](BUILD.md))
 
 ## Quick Start
@@ -283,7 +283,7 @@ Please keep the code style consistent with the existing codebase (C11, no Unicod
 
 ## Releases
 
-Pre-built plugins for Linux and Windows are available on the [Releases](https://github.com/HackerCorpLabs/rz-nd100/releases) page.
+Pre-built plugins for Linux and Windows are available on the [Releases](https://github.com/RetroCoreLabs/rz-nd100/releases) page.
 
 ### Creating a new release
 
@@ -318,8 +318,8 @@ Release notes are auto-generated from the commit history since the previous tag.
 
 ## Acknowledgements
 
-- The instruction decoder was adapted from [nd100x](https://github.com/HackerCorpLabs/nd100x), an ND-100 emulator
-- Assembler syntax informed by [nd100-as](https://github.com/HackerCorpLabs/nd100-as), an ND-100 cross-assembler
+- The instruction decoder was adapted from [nd100x](https://github.com/RetroCoreLabs/nd100x), an ND-100 emulator
+- Assembler syntax informed by [nd100-as](https://github.com/RetroCoreLabs/nd100-as), an ND-100 cross-assembler
 - Built on the [Rizin](https://rizin.re/) reverse-engineering framework
 - MON call and IOX device tables derived from original Norsk Data documentation
 
